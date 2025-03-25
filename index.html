@@ -1,1 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Card Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #2e8b57;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .game-info {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #4682b4;
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            height: 120px;
+            width: 120px;
+            background-color: #4682b4;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card.flipped {
+            background-color: white;
+            color: #2e8b57;
+            transform: rotateY(180deg);
+        }
+        
+        .card.matched {
+            background-color: #90ee90;
+            cursor: default;
+        }
+        
+        .controls {
+            margin-top: 30px;
+        }
+        
+        button {
+            background-color: #2e8b57;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0 10px;
+        }
+        
+        button:hover {
+            background-color: #3cb371;
+        }
+        
+        .instructions {
+            margin-top: 30px;
+            font-size: 1.2rem;
+            max-width: 600px;
+            text-align: center;
+            line-height: 1.6;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Memory Card Game</h1>
+    <div class="game-info">
+        Moves: <span id="moves">0</span> | Pairs Found: <span id="pairs">0</span>/8
+    </div>
+    <div class="game-board" id="gameBoard"></div>
+    <div class="controls">
+        <button id="newGameBtn">New Game</button>
+    </div>
+    <div class="instructions">
+        <p>Click on cards to flip them over and find matching pairs. Match all pairs to win the game!</p>
+    </div>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const gameBoard = document.getElementById('gameBoard');
+            const movesDisplay = document.getElementById('moves');
+            const pairsDisplay = document.getElementById('pairs');
+            const newGameBtn = document.getElementById('newGameBtn');
+            
+            let cards = [];
+            let flippedCards = [];
+            let moves = 0;
+            let pairsFound = 0;
+            let canFlip = true;
+            
+            // Emoji symbols for the cards
+            const symbols = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼'];
+            
+            // Initialize the game
+            function initGame() {
+                // Reset game state
+                cards = [];
+                flippedCards = [];
+                moves = 0;
+                pairsFound = 0;
+                canFlip = true;
+                
+                // Update displays
+                movesDisplay.textContent = moves;
+                pairsDisplay.textContent = `${pairsFound}/8`;
+                
+                // Clear the game board
+                gameBoard.innerHTML = '';
+                
+                // Create pairs of cards
+                const gameCards = [...symbols, ...symbols];
+                
+                // Shuffle the cards
+                shuffleArray(gameCards);
+                
+                // Create card elements
+                gameCards.forEach((symbol, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.dataset.symbol = symbol;
+                    card.dataset.index = index;
+                    card.textContent = '?';
+                    
+                    card.addEventListener('click', flipCard);
+                    
+                    gameBoard.appendChild(card);
+                    cards.push({
+                        element: card,
+                        symbol: symbol,
+                        isFlipped: false,
+                        isMatched: false
+                    });
+                });
+            }
+            
+            // Flip a card
+            function flipCard() {
+                if (!canFlip) return;
+                
+                const cardIndex = parseInt(this.dataset.index);
+                const card = cards[cardIndex];
+                
+                // Don't flip if already flipped or matched
+                if (card.isFlipped || card.isMatched) return;
+                
+                // Flip the card
+                card.isFlipped = true;
+                this.textContent = card.symbol;
+                this.classList.add('flipped');
+                
+                // Add to flipped cards
+                flippedCards.push(card);
+                
+                // If two cards are flipped, check for a match
+                if (flippedCards.length === 2) {
+                    canFlip = false;
+                    moves++;
+                    movesDisplay.textContent = moves;
+                    
+                    if (flippedCards[0].symbol === flippedCards[1].symbol) {
+                        // Match found
+                        flippedCards[0].isMatched = true;
+                        flippedCards[1].isMatched = true;
+                        flippedCards[0].element.classList.add('matched');
+                        flippedCards[1].element.classList.add('matched');
+                        
+                        pairsFound++;
+                        pairsDisplay.textContent = `${pairsFound}/8`;
+                        
+                        // Check if game is won
+                        if (pairsFound === 8) {
+                            setTimeout(() => {
+                                alert(`Congratulations! You won in ${moves} moves!`);
+                            }, 500);
+                        }
+                        
+                        flippedCards = [];
+                        canFlip = true;
+                    } else {
+                        // No match, flip back after a delay
+                        setTimeout(() => {
+                            flippedCards.forEach(card => {
+                                card.isFlipped = false;
+                                card.element.textContent = '?';
+                                card.element.classList.remove('flipped');
+                            });
+                            flippedCards = [];
+                            canFlip = true;
+                        }, 1000);
+                    }
+                }
+            }
+            
+            // Shuffle array using Fisher-Yates algorithm
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+            
+            // New game button
+            newGameBtn.addEventListener('click', initGame);
+            
+            // Start the game
+            initGame();
+        });
+    </script>
+</body>
+</html>
